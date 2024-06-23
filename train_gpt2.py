@@ -247,10 +247,10 @@ model.to(device)
 # prefix tokens
 import tiktoken
 enc = tiktoken.get_encoding('gpt2')
-# tokens = enc.encode("Hello, I'm a language model,")
-# tokens = torch.tensor(tokens, dtype=torch.long)
-# tokens = tokens.unsqueeze(0).repeat(num_response_sequence, 1)
-# x = tokens.to(device)
+tokens = enc.encode("Hello, I'm a language model,")
+tokens = torch.tensor(tokens, dtype=torch.long)
+tokens = tokens.unsqueeze(0).repeat(num_response_sequence, 1)
+x = tokens.to(device)
 
 # with open('input.txt', 'r') as f:
 #     text = f.read()
@@ -266,45 +266,49 @@ enc = tiktoken.get_encoding('gpt2')
 # print(f"logits shape: {logits.shape}")
 # print(f"loss: {loss.item()}")
 
-trainloader = DataLoaderLite(B=4, T=32)
+# trainloader = DataLoaderLite(B=4, T=32)
 
-optimizer = torch.optim.AdamW(model.parameters(), lr = 3e-4)
-for i in range(50):
-    epoch_loss = []
-    while True:
-        x, y = trainloader.next_batch()
-        if x is None and y is None: # epoch done!!
-            break
-        x, y = x.to(device), y.to(device)
-        optimizer.zero_grad()
-        logits, loss = model(x, y)
-        import code; code.interact(local=locals())
-        loss.backward()
-        epoch_loss.append(loss.item())
-        optimizer.step()
-        # print(f"step: {i}, loss: {loss.item()}")
+# optimizer = torch.optim.AdamW(model.parameters(), lr = 3e-4)
+# for i in range(50):
+#     epoch_loss = []
+#     while True:
+#         x, y = trainloader.next_batch()
+#         if x is None and y is None: # epoch done!!
+#             break
+#         x, y = x.to(device), y.to(device)
+#         optimizer.zero_grad()
+#         logits, loss = model(x, y)
+#         import code; code.interact(local=locals())
+#         loss.backward()
+#         epoch_loss.append(loss.item())
+#         optimizer.step()
+#         # print(f"step: {i}, loss: {loss.item()}")
     
-    print(f'epoch {i} loss -> {sum(epoch_loss) / len(epoch_loss)}')
+#     print(f'epoch {i} loss -> {sum(epoch_loss) / len(epoch_loss)}')
 
 
 
- # # generate
-# torch.manual_seed(42)
-# torch.cuda.manual_seed(42)
-# while x.size(1) <= max_length:
-#     with torch.no_grad():
-#         logits = model(x)
-#         logits = logits[:, -1, :] # (B, vocab)
-#         probs = F.softmax(logits, dim=-1)
-#         topk_probs, topk_indices = torch.topk(probs, 50, dim=-1) # (5, 50)
-#         ix = torch.multinomial(topk_probs, 1)
-#         xcol = torch.gather(topk_indices, -1, ix) # (B, 1)
-#         x = torch.cat((x, xcol), dim=1)
+ # generate
+torch.manual_seed(42)
+torch.cuda.manual_seed(42)
+while x.size(1) <= max_length:
+    with torch.no_grad():
+        # print(x.size())
+        s = time.time()
+        logits, loss = model(x)
+        e = time.time()
+        print(f'inf time: {e - s}sec')
+        logits = logits[:, -1, :] # (B, vocab)
+        probs = F.softmax(logits, dim=-1)
+        topk_probs, topk_indices = torch.topk(probs, 50, dim=-1) # (5, 50)
+        ix = torch.multinomial(topk_probs, 1)
+        xcol = torch.gather(topk_indices, -1, ix) # (B, 1)
+        x = torch.cat((x, xcol), dim=1)
 
-# for i in range(num_response_sequence):
-#     tokens = x[i, :max_length].tolist()
-#     decoded = enc.decode(tokens)
-#     print(">", decoded)
+for i in range(num_response_sequence):
+    tokens = x[i, :max_length].tolist()
+    decoded = enc.decode(tokens)
+    print(">", decoded)
 
 
 
